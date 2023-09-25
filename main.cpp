@@ -1,41 +1,76 @@
-#include <iostream>
-#include <cmath>
+ #include <iostream>
 #include <iomanip>
+#include <cmath>
+using namespace std;
 
-int main() {
-    double x=0.7;
 
-    int i= 0; //счетчик
-    int p;
-    double ln;
-    std::cin >> p;
-    if (x>=-1&x<1) {
-         ln = log(1.0-x);
-        std::cout << std::setprecision(p+1) << ln << std::endl;
+int main()
+{
+    int n;
+    cin >> n; //количество элементов в массиве
+    double arr[n];
+    double sum=0;
+    double min;
+    int i,j,first,last,x;
 
+    for(i=0; i<n; i++) {
+        cout << "arr[" << i << "]=";
+        cin >> arr[i];
+    } //формирование массива и каждого элемента
+
+    //поиск минимального элемента
+
+    for (i=0, min=arr[0]; i<n; i++){
+        if (arr[i]<min)
+            min = arr[i];
+    }// поиск первого отрицательного элемента
+
+     for (i=0; i<n; i++)
+        if(arr[i]<0){
+            first=i;
+            break; }
+       cout << "Fist negative element is (" << first << ")" << endl;
+
+   //поиск последнего отрицательного элемента
+
+    for (i=n-1; i >= 0; i--)
+        if(arr[i]<0)
+        {
+            last=i;
+            break; }
+    cout << "Last negative element is (" << last << ")" << endl;
+
+    //поиск суммы
+
+     for(i=first+1; i<last; i++)
+         sum+=arr[i];
+    cout << "Sum = " << sum << endl;
+
+    //изменение расположения элементов массива
+
+    cout << "Write module :" << endl;
+    cin>>x;
+    for(i=0; i<n; i++) {
+        if(abs(arr[i]) <= x)
+
+
+            continue;
+            for(j = i + 1; j<n ; j++) {
+                if (abs(arr[j]) <= x) {
+                    int tmp =arr[j];
+                    arr[j] = arr [i];
+                    arr [i] = tmp;
+                    break;
+
+            }
+        }
     }
-    int n = 1;
-    double u=0;
-    long long u1=u*pow(10,p+1);
-    long long ln1=ln*pow(10,p+1);
-    while(u1!= ln1){
-        i ++;
 
-        double y=pow(x, n)/n;
-        u=u-y;
-        n+=1;
-
-
-
-        u1=u*pow(10,p+1);
-
-
-
-
-
+    for (i=0; i<n; i++)
+    {
+        cout << "Element n" ;
+        cout << i << ":" << setprecision(3) << arr[i] << endl;
     }
 
-
-    std::cout << std::setprecision(p+1) << u << std::endl;
     return 0;
 }
