@@ -1,0 +1,32 @@
+#include <iostream>
+
+int main() {
+    int a;
+    int result = 0;
+    std::cin >> a;
+
+    __asm {
+        mov ecx, a;
+        imul ecx, ecx;
+        imul ecx, ecx;
+        imul ecx, ecx;
+        imul ecx, a;
+        imul ecx, a;
+        imul ecx, a;
+        imul ecx, a;
+
+        mov edx, ecx;
+
+        mov ecx, a;
+        imul ecx, ecx;
+        imul ecx, ecx;
+        imul ecx, ecx;
+        add ecx, edx;
+        add ecx, a;
+        mov result, ecx;
+    }
+
+    std::cout << "result: " << result << '\n';
+
+    return 0;
+}
