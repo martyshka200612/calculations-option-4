@@ -1,0 +1,52 @@
+#include <iostream>
+
+using namespace std;
+
+int main()
+{
+    double coefficient_k = 1;
+    double sum_of_series = 0;
+    double negative_one = -1;
+    double two = 2;
+    double one = 1;
+    double result;
+    double constant_eight = 8;
+    double temp;
+
+    _asm
+    {
+        mov ecx, 1000000
+
+        loop1:
+        fld negative_one
+            fld two
+            fld coefficient_k
+            fmul
+            fadd
+
+            fld one
+            fdiv st(0), st(1)
+            fld sum_of_series
+            fadd
+            fstp sum_of_series
+
+            fstp temp
+
+            fld one
+            fadd coefficient_k
+            fstp coefficient_k
+
+            fstp temp
+
+            loop loop1
+
+            fld sum_of_series
+            fmul constant_eight
+            fsqrt
+            fstp result
+    }
+
+    cout << "Result: " << result;
+
+    return 0;
+}
