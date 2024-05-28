@@ -1,0 +1,376 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QStatusBar, QMainWindow, QGridLayout, QWidget, QPushButton, QMessageBox, QLabel, QLineEdit, QVBoxLayout, QAction, QColorDialog, QFileDialog, QMenu
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap,QFont
+
+class SuperTicTacToe(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+
+        self.setWindowTitle("Super Tic-Tac-Toe")
+        self.setGeometry(100, 100, 1200, 900)
+
+        self.setStyleSheet("background-color:#4169E1;")
+
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.central_widget.setStyleSheet("background: qradialgradient(cx:0.5, cy:0.5, radius:1, fx:0.5, fy:0.5, stop:0 blue, stop:1 pink);")
+        font = QFont("Roboto")
+
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.setStyleSheet("font-size: 30px;")
+
+
+        self.grid_layout = QGridLayout()
+        self.main_layout = QGridLayout()
+        self.central_widget.setLayout(self.main_layout)
+
+        self.board_size = 3
+        self.sub_board_size = 3
+        self.board = [[None for _ in range(self.board_size)] for _ in range(self.board_size)]
+        self.sub_board_status = [[None for _ in range(self.board_size)] for _ in range(self.board_size)]
+        self.current_player = "X"
+        self.game_over = False
+        self.next_board = None
+
+        self.player1_name = QLineEdit("write something here..")
+        self.player1_name.setStyleSheet("color: white; font-size: 15px;")  # Устанавливаем белый цвет текста
+        self.player2_name = QLineEdit("write something here..")
+        self.player2_name.setStyleSheet("color: white; font-size: 15px;")  # Устанавливаем белый цвет текста
+        self.player1_photo = QLabel()
+        self.player2_photo = QLabel()
+        self.player1_photo_path = "default_photo.jpg"
+        self.player2_photo_path = "default_photo.jpg"
+        self.photo_size = 150  # Increased size for player photos
+
+        self.colour_x = "#CCCCFF"
+        self.colour_o = "#CCCCFF"
+        self.colour_main = ("#4682B4")
+        self.highlight_colour = "#FFC0CB"
+
+        self.initUI()
+
+    def initUI(self):
+
+        player1_layout = QVBoxLayout()
+        player1_label = QLabel("Player 1 (ง︡'-'︠)ง")
+        player1_label.setStyleSheet("color: white; font-size: 20px;font-family: Roboto;font-weight:bold")
+        player1_layout.addWidget(player1_label)
+
+        player1_layout.addWidget(self.player1_name)
+        self.player1_photo.setPixmap(QPixmap(self.player1_photo_path).scaled(self.photo_size, self.photo_size, Qt.KeepAspectRatio))
+        player1_layout.addWidget(self.player1_photo)
+        player1_photo_button = QPushButton("UPLOAD PHOTO")
+        player1_photo_button.setStyleSheet("color: white; font-size: 17px; font-family: Roboto;")
+        player1_photo_button.clicked.connect(lambda: self.upload_photo(1))
+        player1_layout.addWidget(player1_photo_button)
+
+        player2_layout = QVBoxLayout()
+        player2_label = QLabel("ง(︠'-'︡ง)Player 2:")
+        player2_label.setStyleSheet("color: white; font-size: 20px; font-family: Roboto; font-weight:bold ")
+        player2_layout.addWidget(player2_label)
+        player2_layout.addWidget(self.player2_name)
+        self.player2_photo.setPixmap(QPixmap(self.player2_photo_path).scaled(self.photo_size, self.photo_size, Qt.KeepAspectRatio))
+        player2_layout.addWidget(self.player2_photo)
+        player2_photo_button = QPushButton("UPLOAD PHOTO")
+        player2_photo_button.setStyleSheet("color: white; font-size: 17px; font-family: Roboto;")
+        player2_photo_button.clicked.connect(lambda: self.upload_photo(2))
+        player2_layout.addWidget(player2_photo_button)
+
+        self.main_layout.addLayout(player1_layout, 0, 0, Qt.AlignTop)
+        self.main_layout.addLayout(player2_layout, 0, 2, Qt.AlignTop)
+
+        self.main_layout.addLayout(self.grid_layout, 0, 1)
+
+
+
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                sub_board = QWidget()
+                sub_board_layout = QGridLayout()
+                sub_board.setLayout(sub_board_layout)
+                self.board[row][col] = [[None for _ in range(self.sub_board_size)] for _ in range(self.sub_board_size)]
+
+
+
+                for sub_row in range(self.sub_board_size):
+                    for sub_col in range(self.sub_board_size):
+
+                        button = QPushButton("")
+                        button.setFixedSize(75, 75)
+                        button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+                        button.clicked.connect(
+                            lambda checked, r=row, c=col, sr=sub_row, sc=sub_col: self.make_move(r, c, sr, sc))
+                        sub_board_layout.addWidget(button, sub_row, sub_col)
+                        self.board[row][col][sub_row][sub_col] = button
+
+                self.grid_layout.addWidget(sub_board, row, col)
+
+        self.highlight_available_moves()
+
+        menubar = self.menuBar()
+        state_menu = menubar.addMenu("State")
+        edit_menu = menubar.addMenu("Edit")
+
+        load_action = QAction("Load", self)
+        save_action = QAction("Save", self)
+        state_menu.addAction(load_action)
+        state_menu.addAction(save_action)
+        load_action.triggered.connect(self.load_game)
+        save_action.triggered.connect(self.save_game)
+
+        colour_menu = QMenu("Change Colours", self)
+        change_colour_x_action = QAction("Change X Colour", self)
+        change_colour_o_action = QAction("Change O Colour", self)
+        change_colour_main_action = QAction("Change Main Colour", self)
+        change_highlight_colour_action = QAction("Change Highlight Colour", self)
+
+        colour_menu.addAction(change_colour_x_action)
+        colour_menu.addAction(change_colour_o_action)
+        colour_menu.addAction(change_colour_main_action)
+        colour_menu.addAction(change_highlight_colour_action)
+
+        edit_menu.addMenu(colour_menu)
+
+        change_colour_x_action.triggered.connect(lambda: self.change_colour("X"))
+        change_colour_o_action.triggered.connect(lambda: self.change_colour("O"))
+        change_colour_main_action.triggered.connect(lambda: self.change_colour("main"))
+        change_highlight_colour_action.triggered.connect(lambda: self.change_colour("highlight"))
+
+    def upload_photo(self, player):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Photo", "", "Image Files (*.png *.jpg *.bmp)",
+                                                   options=options)
+        if file_name:
+            pixmap = QPixmap(file_name).scaled(300, 300, Qt.KeepAspectRatio)
+            if player == 1:
+                self.player1_photo_path = file_name
+                self.player1_photo.setPixmap(pixmap)
+            else:
+                self.player2_photo_path = file_name
+                self.player2_photo.setPixmap(pixmap)
+
+    def save_game(self):
+        game_state = {
+            "board": [[[(button.text(), button.isEnabled()) for button in row] for row in col] for col in self.board],
+            "sub_board_status": self.sub_board_status,
+            "current_player": self.current_player,
+            "game_over": self.game_over,
+            "next_board": self.next_board,
+            "colour_x": self.colour_x,
+            "colour_o": self.colour_o,
+            "colour_main": self.colour_main,
+            "highlight_colour": self.highlight_colour
+        }
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Game", "", "Game Files (*.game)", options=options)
+        if file_name:
+            with open(file_name, 'w') as file:
+                file.write(str(game_state))
+
+    def load_game(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Game", "", "Game Files (*.game)", options=options)
+        if file_name:
+            with open(file_name, 'r') as file:
+                game_state = eval(file.read())
+                self.sub_board_status = game_state["sub_board_status"]
+                self.current_player = game_state["current_player"]
+                self.game_over = game_state["game_over"]
+                self.next_board = game_state["next_board"]
+                self.colour_x = game_state["colour_x"]
+                self.colour_o = game_state["colour_o"]
+                self.colour_main = game_state["colour_main"]
+                self.highlight_colour = game_state["highlight_colour"]
+                for row in range(self.board_size):
+                    for col in range(self.board_size):
+                        for sub_row in range(self.sub_board_size):
+                            for sub_col in range(self.sub_board_size):
+                                text, enabled = game_state["board"][row][col][sub_row][sub_col]
+                                button = self.board[row][col][sub_row][sub_col]
+                                button.setText(text)
+                                button.setEnabled(enabled)
+                                if text == "X":
+                                    button.setStyleSheet(f"font-size: 24px; color: {self.colour_x}; background-color: {self.colour_main};")
+                                elif text == "O":
+                                    button.setStyleSheet(f"font-size: 24px; color: {self.colour_o}; background-color: {self.colour_main};")
+                                else:
+                                    button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+                self.highlight_available_moves()
+
+    def make_move(self, row, col, sub_row, sub_col):
+        if self.game_over or self.board[row][col][sub_row][sub_col].text() != "" or (
+                self.sub_board_status[row][col] is not None):
+            return
+        if self.next_board and self.next_board != (row, col):
+            return
+
+        self.board[row][col][sub_row][sub_col].setText(self.current_player)
+        self.board[row][col][sub_row][sub_col].setStyleSheet(
+            f"font-size: 24px; color: {self.colour_x if self.current_player == 'X' else self.colour_o}; background-color: {self.colour_main};")
+        next_player = "X" if self.current_player == "O" else "O"
+        self.statusBar.showMessage(f"CURRENT PLAYER: {next_player}")
+
+        if self.check_winner(self.board[row][col]):
+            self.sub_board_status[row][col] = self.current_player
+            self.mark_sub_board_winner(row, col)
+            if self.check_main_winner():
+                winner_name = self.player1_name.text() if self.current_player == "X" else self.player2_name.text()
+                QMessageBox.information(self, "Game Over", f"Player {winner_name} wins the game!")
+                self.game_over = True
+        elif self.is_draw(self.board[row][col]):
+            self.sub_board_status[row][col] = "Draw"
+
+        self.next_board = (sub_row, sub_col)
+        if self.sub_board_status[sub_row][sub_col] is not None:
+            self.next_board = None
+
+        if not self.game_over:
+            self.current_player = "O" if self.current_player == "X" else "X"
+            self.highlight_available_moves()
+
+    def check_winner(self, sub_board):
+        for i in range(self.sub_board_size):
+            if all(sub_board[i][j].text() == self.current_player for j in range(self.sub_board_size)):
+                return True
+            if all(sub_board[j][i].text() == self.current_player for j in range(self.sub_board_size)):
+                return True
+        if all(sub_board[i][i].text() == self.current_player for i in range(self.sub_board_size)):
+            return True
+        if all(sub_board[i][self.sub_board_size - i - 1].text() == self.current_player for i in
+               range(self.sub_board_size)):
+            return True
+        return False
+
+    def check_main_winner(self):
+        for i in range(self.board_size):
+            if all(self.sub_board_status[i][j] == self.current_player for j in range(self.board_size)):
+                return True
+            if all(self.sub_board_status[j][i] == self.current_player for j in range(self.board_size)):
+                return True
+        if all(self.sub_board_status[i][i] == self.current_player for i in range(self.board_size)):
+            return True
+        if all(self.sub_board_status[i][self.board_size - i - 1] == self.current_player for i in
+               range(self.board_size)):
+            return True
+        return False
+
+    def is_draw(self, sub_board):
+        for row in range(self.sub_board_size):
+            for col in range(self.sub_board_size):
+                if sub_board[row][col].text() == "":
+                    return False
+        return True
+
+    def mark_sub_board_winner(self, row, col):
+        winner = self.current_player
+        for sub_row in range(self.sub_board_size):
+            for sub_col in range(self.sub_board_size):
+                button = self.board[row][col][sub_row][sub_col]
+                button.setDisabled(True)
+                if button.text() == "":
+                    button.setText(winner)
+                button.setStyleSheet(
+                    f"font-size: 48px; color: {self.colour_x if winner == 'X' else self.colour_o}; background-color: {self.colour_main};")
+
+    def highlight_available_moves(self):
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                for sub_row in range(self.sub_board_size):
+                    for sub_col in range(self.sub_board_size):
+                        button = self.board[row][col][sub_row][sub_col]
+                        if self.sub_board_status[row][col] is None and (
+                                self.next_board is None or self.next_board == (row, col)) and button.text() == "":
+                            button.setStyleSheet(f"font-size: 24px; background-color: {self.highlight_colour};")
+                        else:
+                            if button.text() == "X":
+                                button.setStyleSheet(
+                                    f"font-size: 24px; color: {self.colour_x}; background-color: {self.colour_main};")
+                            elif button.text() == "O":
+                                button.setStyleSheet(
+                                    f"font-size: 24px; color: {self.colour_o}; background-color: {self.colour_main};")
+                            else:
+                                button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+
+    def change_colour(self, target):
+        colour = QColorDialog.getColor()
+        if colour.isValid():
+            if target == "X":
+                self.colour_x = colour.name()
+            elif target == "O":
+                self.colour_o = colour.name()
+            elif target == "main":
+                self.colour_main = colour.name()
+                for row in range(self.board_size):
+                    for col in range(self.board_size):
+                        for sub_row in range(self.sub_board_size):
+                            for sub_col in range(self.sub_board_size):
+                                button = self.board[row][col][sub_row][sub_col]
+                                if button.text() == "":
+                                    button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+            elif target == "highlight":
+                self.highlight_colour = colour.name()
+            self.highlight_available_moves()
+
+    def mark_sub_board_winner(self, row, col):
+        winner = self.current_player
+        for sub_row in range(self.sub_board_size):
+            for sub_col in range(self.sub_board_size):
+                button = self.board[row][col][sub_row][sub_col]
+                button.setDisabled(True)
+                button.setText("")
+                button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+
+        # Создаем новый большой символ и помещаем его на центральную кнопку малого поля
+        central_button = self.board[row][col][self.sub_board_size // 2][self.sub_board_size // 2]
+        central_button.setText(winner)
+        central_button.setStyleSheet(
+            f"font-size: 48px; color: {self.colour_x if winner == 'X' else self.colour_o}; background-color: {self.colour_main};")
+
+    def highlight_available_moves(self):
+        for row in range(self.board_size):
+            for col in range(self.board_size):
+                for sub_row in range(self.sub_board_size):
+                    for sub_col in range(self.sub_board_size):
+                        button = self.board[row][col][sub_row][sub_col]
+                        if self.sub_board_status[row][col] is None and (
+                                self.next_board is None or self.next_board == (row, col)) and button.text() == "":
+                            button.setStyleSheet(f"font-size: 24px; background-color: {self.highlight_colour};")
+                        else:
+                            if button.text() == "X":
+                                button.setStyleSheet(
+                                    f"font-size: 30px; color: {self.colour_x}; background-color: {self.colour_main};")
+                            elif button.text() == "O":
+                                button.setStyleSheet(
+                                    f"font-size: 30px; color: {self.colour_o}; background-color: {self.colour_main};")
+                            else:
+                                button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+
+    def change_colour(self, target):
+        colour = QColorDialog.getColor()
+        if colour.isValid():
+            if target == "X":
+                self.colour_x = colour.name()
+            elif target == "O":
+                self.colour_o = colour.name()
+            elif target == "main":
+                self.colour_main = colour.name()
+                for row in range(self.board_size):
+                    for col in range(self.board_size):
+                        for sub_row in range(self.sub_board_size):
+                            for sub_col in range(self.sub_board_size):
+                                button = self.board[row][col][sub_row][sub_col]
+                                if button.text() == "":
+                                    button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+            elif target == "highlight":
+                self.highlight_colour = colour.name()
+            self.highlight_available_moves()
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = SuperTicTacToe()
+    window.show()
+    sys.exit(app.exec_())
