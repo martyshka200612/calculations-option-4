@@ -1,7 +1,7 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QStatusBar, QMainWindow, QGridLayout, QWidget, QPushButton, QMessageBox, QLabel, QLineEdit, QVBoxLayout, QAction, QColorDialog, QFileDialog, QMenu
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap,QFont
+from PyQt5.QtWidgets import QApplication,QStatusBar, QMainWindow, QGridLayout, QWidget, QPushButton, QMessageBox, QLabel, QLineEdit, QVBoxLayout, QAction, QColorDialog, QFileDialog, QMenu
+from PyQt5.QtCore import Qt,QEvent
+from PyQt5.QtGui import QPixmap,QFont,QCursor
 
 class SuperTicTacToe(QMainWindow):
     def __init__(self):
@@ -37,8 +37,15 @@ class SuperTicTacToe(QMainWindow):
 
         self.player1_name = QLineEdit("write something here..")
         self.player1_name.setStyleSheet("color: white; font-size: 15px;")  # Устанавливаем белый цвет текста
+
+
         self.player2_name = QLineEdit("write something here..")
         self.player2_name.setStyleSheet("color: white; font-size: 15px;")  # Устанавливаем белый цвет текста
+        self.player1_name.installEventFilter(self)
+        self.player2_name.installEventFilter(self)
+
+
+
         self.player1_photo = QLabel()
         self.player2_photo = QLabel()
         self.player1_photo_path = "default_photo.jpg"
@@ -52,6 +59,14 @@ class SuperTicTacToe(QMainWindow):
 
         self.initUI()
 
+
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.FocusIn:
+            if obj == self.player1_name or obj == self.player2_name:
+                obj.clear()
+                obj.setStyleSheet("color: white;")
+        return super().eventFilter(obj, event)
     def initUI(self):
 
         player1_layout = QVBoxLayout()
@@ -139,6 +154,8 @@ class SuperTicTacToe(QMainWindow):
         change_colour_main_action.triggered.connect(lambda: self.change_colour("main"))
         change_highlight_colour_action.triggered.connect(lambda: self.change_colour("highlight"))
 
+
+
     def upload_photo(self, player):
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Photo", "", "Image Files (*.png *.jpg *.bmp)",
@@ -218,7 +235,8 @@ class SuperTicTacToe(QMainWindow):
             self.mark_sub_board_winner(row, col)
             if self.check_main_winner():
                 winner_name = self.player1_name.text() if self.current_player == "X" else self.player2_name.text()
-                QMessageBox.information(self, "Game Over", f"Player {winner_name} wins the game!")
+                QMessageBox.information(self, "Game Over",
+                                        f"Player {'noname' if not winner_name.strip() or winner_name.strip() == 'write something here..' else winner_name} wins the game!")
                 self.game_over = True
         elif self.is_draw(self.board[row][col]):
             self.sub_board_status[row][col] = "Draw"
@@ -230,7 +248,6 @@ class SuperTicTacToe(QMainWindow):
         if not self.game_over:
             self.current_player = "O" if self.current_player == "X" else "X"
             self.highlight_available_moves()
-
     def check_winner(self, sub_board):
         for i in range(self.sub_board_size):
             if all(sub_board[i][j].text() == self.current_player for j in range(self.sub_board_size)):
@@ -245,15 +262,19 @@ class SuperTicTacToe(QMainWindow):
         return False
 
     def check_main_winner(self):
+
         for i in range(self.board_size):
-            if all(self.sub_board_status[i][j] == self.current_player for j in range(self.board_size)):
+            if all(self.sub_board_status[i][j] == self.current_player for j in range(self.board_size) if
+                   self.sub_board_status[i][j] != "write something here.."):
                 return True
-            if all(self.sub_board_status[j][i] == self.current_player for j in range(self.board_size)):
+            if all(self.sub_board_status[j][i] == self.current_player for j in range(self.board_size) if
+                   self.sub_board_status[j][i] != "write something here.."):
                 return True
-        if all(self.sub_board_status[i][i] == self.current_player for i in range(self.board_size)):
+        if all(self.sub_board_status[i][i] == self.current_player for i in range(self.board_size) if
+               self.sub_board_status[i][i] != "write something here.."):
             return True
-        if all(self.sub_board_status[i][self.board_size - i - 1] == self.current_player for i in
-               range(self.board_size)):
+        if all(self.sub_board_status[i][self.board_size - i - 1] == self.current_player for i in range(self.board_size)
+               if self.sub_board_status[i][self.board_size - i - 1] != "write something here.."):
             return True
         return False
 
@@ -319,15 +340,19 @@ class SuperTicTacToe(QMainWindow):
         for sub_row in range(self.sub_board_size):
             for sub_col in range(self.sub_board_size):
                 button = self.board[row][col][sub_row][sub_col]
+                if button.text() == "write something here..":
+                    continue  # Пропустить кнопки с начальным текстом
                 button.setDisabled(True)
-                button.setText("")
-                button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
+                button.setText(winner)
+                button.setStyleSheet(
+                    f"font-size: 48px; color: {self.colour_x if winner == 'X' else self.colour_o}; background-color: {self.colour_main};")
 
         # Создаем новый большой символ и помещаем его на центральную кнопку малого поля
-        central_button = self.board[row][col][self.sub_board_size // 2][self.sub_board_size // 2]
-        central_button.setText(winner)
+        central_button = QPushButton(winner)
+        central_button.setFixedSize(255, 255)
         central_button.setStyleSheet(
-            f"font-size: 48px; color: {self.colour_x if winner == 'X' else self.colour_o}; background-color: {self.colour_main};")
+            f"font-size: 210px; color: {self.colour_x if winner == 'X' else self.colour_o}; background-color: {self.colour_main};")
+        self.grid_layout.addWidget(central_button, row, col)
 
     def highlight_available_moves(self):
         for row in range(self.board_size):
