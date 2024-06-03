@@ -217,6 +217,14 @@ class SuperTicTacToe(QMainWindow):
                                     button.setStyleSheet(f"font-size: 24px; background-color: {self.colour_main};")
                 self.highlight_available_moves()
 
+    def check_draw(self, row, col):
+        sub_board = self.board[row][col]
+        for sub_row in range(self.sub_board_size):
+            for sub_col in range(self.sub_board_size):
+                if sub_board[sub_row][sub_col].text() == "":
+                    return False
+        return True
+
     def make_move(self, row, col, sub_row, sub_col):
         if self.game_over or self.board[row][col][sub_row][sub_col].text() != "" or (
                 self.sub_board_status[row][col] is not None):
@@ -238,8 +246,10 @@ class SuperTicTacToe(QMainWindow):
                 QMessageBox.information(self, "Game Over",
                                         f"Player {'noname' if not winner_name.strip() or winner_name.strip() == 'write something here..' else winner_name} wins the game!")
                 self.game_over = True
-        elif self.is_draw(self.board[row][col]):
+        elif self.check_draw(row, col):
             self.sub_board_status[row][col] = "Draw"
+            self.game_over = True
+            QMessageBox.information(self, "Game Over", "It's a draw!")
 
         self.next_board = (sub_row, sub_col)
         if self.sub_board_status[sub_row][sub_col] is not None:
